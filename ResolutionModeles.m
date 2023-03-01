@@ -83,7 +83,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     %% BOUCLE DE CALCUL     
 
     while test 
-        drawnow update % Mise à jour des graphs
+        
 
         Ra_calc = Ra_origin(CoupureBasse:end-nbCoupureHaute,l); % Rayons pour le calcul 
         temps_calc = temps_origin(CoupureBasse:end-nbCoupureHaute); % Temps pour le calcul
@@ -212,8 +212,11 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
                 supxhaut = find(Etirement_origin(:,2) > xhaut(1),1,'last'); % Point le plus proche ayant un étirement supérieur à xhaut
                 rbas = Ra_origin(supxbas,2); % Correspondance Rayon/Etirement 
                 rhaut = Ra_origin(supxhaut,2);
+                rmid = rhaut - rbas; % Rayon médian de coupure
                 CoupureBasse = find(Ra_origin(:,2) > rbas,1); % Nouvelle coupure basse
                 nbCoupureHaute = length(Ra_origin(:,2))-find(Ra_origin(:,2) > rhaut,1); % Nouvelle coupure haute
+                rbas = rbas*1e3; % Convertion m/mm pour l'affichage
+                rhaut = rhaut*1e3; % Convertion m/mm pour l'affichage
 
                 % Nettoyage des valeurs stockant les résultats des modèles (pour éviter les résidus liés à la taile de la coupure)
                 close all
@@ -229,11 +232,11 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
                 disp('### SAUVEGARDE DES RESULTATS ###')
                 file = [RepBase '\Out_Sb_calc.dat'];
                 fid = fopen(file,'w');
-                fprintf(fid,'Temps [s]\tRayon Brut [m]\tRayon Filt [m]\tdt [s]\tSb0 L [m/s]\tLb Diff\tSb0 NL 1 [m/s]\tLb NL 1 [m]\tSb0 NL 2 [m/s]\tLb NL 2 [m]\tCt NL 2');
+                fprintf(fid,'Temps [s]\tRayon Brut [m]\tRayon Filt [m]\tdt [s]\tSb0 L [m/s]\tLb L [m]\t2LbL/Rmid\tSb0 NL 1 [m/s]\tLb NL 1 [m]\t2LbNL1/Rmid\tSb0 NL 2 [m/s]\tLb NL 2 [m]\t2LbNL2/Rmid\tCt NL 2');
                 fprintf(fid,'\n');
                 for j=1:length(Ra_calc)
                     if j==1
-                        fprintf(fid,'%9.5f\t%10.10f\t%10.10f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f',temps_calc(j),Ra_cut(j),Ra_calc(j),temps_origin(2)-temps_origin(1),Sb0_Lineaire(2),Lb_Lineaire(2),Sb0_NLineaire(1,2),Lb_NLineaire(1,2),Sb0_NLineaire(2,2),Lb_NLineaire(2,2),C);
+                        fprintf(fid,'%9.5f\t%10.10f\t%10.10f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f',temps_calc(j),Ra_cut(j),Ra_calc(j),temps_origin(2)-temps_origin(1),Sb0_Lineaire(2),Lb_Lineaire(2),2*Lb_Lineaire(2)/rmid,Sb0_NLineaire(1,2),Lb_NLineaire(1,2),2*Lb_NLineaire(1,2)/rmid,Sb0_NLineaire(2,2),Lb_NLineaire(2,2),2*Lb_NLineaire(2,2)/rmid,C);
                         fprintf(fid,'\n');
                     else
                         fprintf(fid,'%9.5f\t%10.10f\t%10.10f',temps_calc(j),Ra_cut(j),Ra_calc(j));
@@ -308,9 +311,9 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     plot(t_recalc(:,2),rf_recalc(:,2),'b')
     plot(t_recalc(:,3),rf_recalc(:,3),'b')
     plot(temps_origin(CoupureBasse),Ra_origin(CoupureBasse,2),'gs','MarkerSize',10,'MarkerFaceColor','m')
-    text(temps_origin(CoupureBasse),Ra_origin(CoupureBasse,2)*1.02,[num2str(rbas*1e3,'%2.2f'), 'mm'],'FontSize',10)
+    text(temps_origin(CoupureBasse),Ra_origin(CoupureBasse,2)*1.02,[num2str(rbas,'%2.2f'), 'mm'],'FontSize',10)
     plot(temps_origin(end-nbCoupureHaute),Ra_origin(end-nbCoupureHaute,2),'gs','MarkerSize',10,'MarkerFaceColor','m')
-    text(temps_origin(end-nbCoupureHaute),Ra_origin(end-nbCoupureHaute,2)*1.02,[num2str(rhaut*1e3,'%2.2f'), 'mm'],'FontSize',10)
+    text(temps_origin(end-nbCoupureHaute),Ra_origin(end-nbCoupureHaute,2)*1.02,[num2str(rhaut,'%2.2f'), 'mm'],'FontSize',10)
     hold off
     axis([temps_origin(1) temps_origin(end) Ra_origin(1,2) Ra_origin(end,2)]);
     xlabel('Temps [s]');
