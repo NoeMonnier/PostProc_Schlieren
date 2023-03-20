@@ -9,6 +9,7 @@ clc
 
 %% CHOIX DU REPERTOIRE/BASE DE TRAVAIL
 
+addpath('./Functions') % Répertoire où sont stockées les fonctions MATLAB
 RepBase = uigetdir('C:\Users\noe.monnier\Documents\Post_Proc'); % Répertoire où sont stockées les vidéos fragmentées
 OriginalRepbase = RepBase; % Garde en mémoire le répertoire de travail
 softbase = cd();
