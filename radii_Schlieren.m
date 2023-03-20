@@ -9,6 +9,7 @@ warning off
 
 %% CHOIX DU REPERTOIRE/BASE DE TRAVAIL
 
+addpath('./Functions') % Répertoire où sont stockées les fonctions MATLAB
 RepBase = uigetdir('C:\Users\noe.monnier\Documents\Post_Proc'); % Répertoire où sont stockées les fichiers du tir
 OriginalRepBase = RepBase; % Copie du chemin du répertoire de travail
 
@@ -73,10 +74,9 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
         disp(['Contour n°' num2str(NumContours(i)) ' : Ra = ' num2str(Ra(i)) ' mm'])
 
     end
-
-    temps(:,1) = (NumContours(1):NumContours(end))/(F/skip)*1000; % Vecteur temps (démarre à l'instant du premier contour) en ms
-    temps = temps(1:skip:end,1); % Prise en compte du saut d'images dans le traitement  
-
+    dt = 1/F*1000; % pas de temps entre 2 images [ms]
+    temps(:,1) = NumContours*dt; % Vecteur temps (démarre à l'instant du premier contour) [ms]
+    
     % Filtrage des Rayons
     Ra_filt = filtfilt([1 1 1 1 1], 5, Ra); % Ra filtré
     Rp_filt = filtfilt([1 1 1 1 1], 5, Rp); % Rp filtré
@@ -87,7 +87,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     Vt_filt = zeros(NbContours, 1); 
     Posrayonmin = min(find(Ra_filt>=Rayon_min_traite)); % Pos du rayon min dans Ra_filt
     Posrayonmax = max(find(Ra_filt<=Rayon_max_traite)); % Pos du rayon max dans Ra_filt
-    Vt_temp = grad(Ra_filt(Posrayonmin:Posrayonmax),temps(Posrayonmin:Posrayonmax),largeur); % Calcul de la vitesse sur la plage de Rayon choisi
+    Vt_temp = grad(Ra_filt(Posrayonmin:Posrayonmax),dt*skip,largeur); % Calcul de la vitesse sur la plage de Rayon choisi
     d1 = designfilt('lowpassiir','FilterOrder',12,'HalfPowerFrequency',0.1,'DesignMethod','butter'); % Filtre passe-bas IIR pour filtrer la courbe de vitesse obtenue 
     Vt_filt_temp = filtfilt(d1, Vt_temp); % Filtrage de la vitesse
     Vt(Posrayonmin:Posrayonmax) = Vt_temp;
