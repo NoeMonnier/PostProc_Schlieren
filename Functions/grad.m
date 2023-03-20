@@ -1,8 +1,7 @@
-function vitesse=grad(rayon, temps, k)
+function vitesse=grad(rayon, dt, k)
     % k correspond à la largeur de calcul du gradient 
     l = length(rayon); % Longueur du vecteur rayon
-    vitesse = zeros(length(rayon),1); % Prealocation du vecteur vitesse
-    dt = temps(2) - temps(1); % Interval de temps entre deux rayons successifs 
+    vitesse = zeros(l,1); % Prealocation du vecteur vitesse
     
     for i = 1:k
         vitesse(i) = (rayon(i+k) - rayon(i))/(k*dt); % Calcul de la vitesse au point i avec un schéma décentré

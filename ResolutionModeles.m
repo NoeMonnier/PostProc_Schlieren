@@ -9,6 +9,7 @@ warning off
 
 %% CHOIX DU REPERTOIRE/BASE DE TRAVAIL ET CHARGEMENT DES DONNEES
 
+addpath('./Functions') % Répertoire où sont stockées les fonctions MATLAB
 RepBase = uigetdir('C:\Users\noe.monnier\Documents\Post_Proc'); % Répertoire où sont stockées les fichiers du tir
 OriginalRepBase = RepBase; % Copie du chemin du répertoire de travail
 
@@ -38,7 +39,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     if max(Etirement) > 10^5
         axis([0 Etirement(find(Etirement < max(Etirement), 1, 'first')) min(Vt_filt)*0.95 max(Vt_filt)*1.05]);
     else
-        axis([min(Etirement)*0.9 max(Etirement)*1.1 min(Vt_filt)*0.95 max(Vt_filt)*1.05]);
+        axis([min(Etirement)*0.9 max(Etirement)*1.1 min(Vt_filt)*0.9 max(Vt_filt)*1.1]);
     end
     xlabel('Etirement [1/s]')
     ylabel('Vitesse de propagation [m/s]')
@@ -48,10 +49,11 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     prompt = {'Entrer la coupure basse (mm):',['Entrer la coupure haute (< ' num2str(Ra(end)) ' mm)'  ]};
     dlg_title = 'Coupures';
     num_lines = 1;
-    def = {'6.5','25'};
+    def = {'6.5','20'};
     answer = inputdlg(prompt,dlg_title,num_lines,def);
     rbas = str2double(answer{1}); % Coupure basse
     rhaut = str2double(answer{2}); % Coupure haute
+    rmid = rhaut - rbas; % Rayon médian de coupure
 
     close all
     
@@ -69,7 +71,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
 
     CoupureBasse = find(Ra_origin(:,2) > rbas/1000, 1); % Indice à partir duquel le modèle est calculé
     nbCoupureHaute = length(Ra_origin(:,2)) - find(Ra_origin(:,2) > rhaut/1000, 1); %  Nombre de valeurs a enlever de Ra en haut
-    l_coupure = length(Ra_origin(CoupureBasse:end-nbCoupureHaute,1)); % Longueur des vecteurs coupés
+    l_coupure = length(Ra_origin(CoupureBasse:end-nbCoupureHaute,2)); % Longueur des vecteurs coupés
 
     l = 2; % 1 : erreur basse, 2 : Rayons filtrés, 3: erreur haute
 
@@ -96,7 +98,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
         [CP,~,~,~] = fminsearch(@fct_Lineaire,param,optimset('TolFun',1e-20,'MaxIter',10000,'MaxFunEvals',1e9),temps_calc,Ra_calc); % Optimisaltion des paramètres (Sb, Lb, Condition Initiale)
         Sb0 = CP(1); % Vitesse non étirée des gaz brulés
         Lb = CP(2); % Longueur de Markstein
-        [~,SolutionDiff] = ode45(@(t,r) Sb0/(1+(2*Lb/r)), temps_calc, CP(3)); % Résolution du modèle linéraire à l'aide des paramètres optimisés 
+        [TempsDiff,SolutionDiff] = ode45(@(t,r) Sb0/(1+(2*Lb/r)), temps_calc, CP(3)); % Résolution du modèle linéraire à l'aide des paramètres optimisés 
         DiffRayonDiff_L(:,l) = abs(Ra_calc - SolutionDiff); % Erreur entre le modèle linéaire et les rayons exp
         VitesseDiff_L(:,l) = gradient(SolutionDiff, temps_calc); % Calcul de la vitesse à partir de la résolution du modèle linéaire
         EtirementDiff_L(:,l) = 2*VitesseDiff_L(:,l)./SolutionDiff; % Calcul de l'étirement à partir de la résolution du modèle linéaire
@@ -105,13 +107,13 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
 
         %% CALCUL MODELE NON LINEAIRE   
         % Modèle NL 
-        param = [0.2 -0.01]; % Initialisation des paramètres (valeurs arbitraires)
+        param = [Sb0 Lb]; % Initialisation des paramètres (valeurs arbitraires)
         [CP,~,~,~] = fminsearch(@fct_nonlineaire,param,optimset('TolFun',1e-14,'MaxIter',10000,'MaxFunEvals',1e7),Ra_calc,Vt_calc); % Optimisation des paramètres (Sb, Lb)
         Sb0_1 = CP(1); % Vitesse non étirée des gaz brulés  
         Lb_1 = CP(2); % Longueur de Markstein
         decalage = 0; % Initialisation du decalage
         [decal,~,~,~] = fminsearch(@fct_decalage,decalage,optimset('TolFun',1e-14,'MaxIter',10000,'MaxFunEvals',1e7),temps_calc, Ra_calc,Lb,Sb0); % Optimisation du vecteur temps à partir des paramètres (Sb, Lb)
-        param = [Sb0_1 Lb_1 0]; % Paramètres pour l'optimisation du modèle
+        param = [Sb0_1 Lb_1 decal]; % Paramètres pour l'optimisation du modèle
         [CP,~,~,~] = fminsearch(@fct_optirayon,param,optimset('TolFun',1e-14,'MaxIter',10000,'MaxFunEvals',1e6),temps_calc,Ra_calc); % Optimisation des Rayons à partir des paramètres Rayons, Sb et Lb
         Sb0_2 = CP(1); % Vitesse non étirée des gaz brulés
         Lb_2 = CP(2); % Longueur de Markstein

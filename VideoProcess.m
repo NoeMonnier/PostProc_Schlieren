@@ -5,6 +5,7 @@ warning off;
 
 %% REPERTOIRE ET BASE DE TRAVAIL
 
+addpath('./Functions') % Répertoire où sont stockées les fonctions MATLAB
 RepBase = uigetdir('C:\Users\noe.monnier\Documents\Post_Proc'); % Répertoire où sont stockés les vidéos
 structvideofile = dir([RepBase '\*.avi']); % s contient les informations sur les fichiers de RepBase
 video_list = {structvideofile.name}'; % Nom des différentes vidéos
