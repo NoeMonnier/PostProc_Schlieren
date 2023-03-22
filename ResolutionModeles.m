@@ -78,8 +78,8 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     %% PREALOCATION
     Sb0_Lineaire = zeros(1,3);
     Lb_Lineaire = zeros(1,3);
-    Sb0_Curvature_L = zeros(1,3);
-    Lb_Curvature_L = zeros(1,3);
+    Sb0_Curvature = zeros(1,3);
+    Lb_Curvature = zeros(1,3);
     Sb0_NLineaire = zeros(2,3);
     Lb_NLineaire = zeros(2,3);
     
@@ -108,15 +108,15 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
         Lb_Lineaire(l) = Lb; 
         %% CALCUL MODELE LINEAIRE COURBURE
         param = [0.75 -0.001 0]; % Initialisation des paramètres (valeurs arbitraires)
-        [CP,~,~,~] = fminsearch(@fct_Lineaire_Curvature,param,optimset('TolFun',1e-20,'MaxIter',10000,'MaxFunEvals',1e9),temps_calc,Ra_calc); % Optimisaltion des paramètres (Sb, Lb, Condition Initiale)
+        [CP,~,~,~] = fminsearch(@fct_Curvature,param,optimset('TolFun',1e-20,'MaxIter',10000,'MaxFunEvals',1e9),temps_calc,Ra_calc); % Optimisaltion des paramètres (Sb, Lb, Condition Initiale)
         Sb0 = CP(1); 
         Lb = CP(2);
-        [TempsCurv,SolutionCurv] = ode45(@(t,r) Sb0-(2*Lb/r), temps_calc, CP(3)); % Résolution du modèle linéaire basé sur la courbure
-        DiffRayonCurv_L(:,l) = abs(Ra_calc - SolutionCurv); % Erreur entre le modèle curv et les rayons exp
-        VitesseCurv_L(:,l) = gradient(SolutionCurv, temps_calc); % Calcul de la vitesse à partir du modèle linéaire courbure
-        EtirementCurv_L(:,l) = 2*VitesseCurv_L(:,l)./SolutionCurv; % Calcul de l'étirement à partir du modèle linéaire courbure
-        Sb0_Curvature_L(l) = Sb0;
-        Lb_Curvature_L(l) = Lb;
+        [TempsCurv,SolutionCurv] = ode45(@(t,r) Sb0*(1-(2*Lb/r)), temps_calc, CP(3)); % Résolution du modèle linéaire basé sur la courbure
+        DiffRayonCurv(:,l) = abs(Ra_calc - SolutionCurv); % Erreur entre le modèle curv et les rayons exp
+        VitesseCurv(:,l) = gradient(SolutionCurv, temps_calc); % Calcul de la vitesse à partir du modèle linéaire courbure
+        EtirementCurv(:,l) = 2*VitesseCurv(:,l)./SolutionCurv; % Calcul de l'étirement à partir du modèle linéaire courbure
+        Sb0_Curvature(l) = Sb0;
+        Lb_Curvature(l) = Lb;
         %% CALCUL MODELE NON LINEAIRE ETIREMENT   
         % Modèle NL 
         param = [Sb0 Lb]; % Initialisation des paramètres (valeurs du modèle Linéiare)
@@ -163,14 +163,14 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
             erreurL = max(erreurBL, erreurHL)/Sb0_Lineaire(2)*100; % erreur la plus défavorable du modèle linéraire
             disp(['Erreur max = ' num2str(erreurL) ' %'])
 
-            disp('# Modèle Courbure Linéaire #')
-            disp(['Sb0 = ' num2str(Sb0_Curvature_L(2)) ' m/s'])
-            disp(['Lb = ' num2str(Lb_Curvature_L(2)*1000) ' mm'])
+            disp('# Modèle Courbure #')
+            disp(['Sb0 = ' num2str(Sb0_Curvature(2)) ' m/s'])
+            disp(['Lb = ' num2str(Lb_Curvature(2)*1000) ' mm'])
 
-            erreurBCL = abs(Sb0_Curvature_L(2) - Sb0_Curvature_L(1));
-            erreurHCL = abs(Sb0_Curvature_L(3) - Sb0_Curvature_L(2));
-            erreurCL = max(erreurBCL, erreurHCL)/Sb0_Curvature_L(2)*100;
-            disp(['Erreur max = ' num2str(erreurCL) ' %'])
+            erreurBC = abs(Sb0_Curvature(2) - Sb0_Curvature(1));
+            erreurHC = abs(Sb0_Curvature(3) - Sb0_Curvature(2));
+            erreurC = max(erreurBC, erreurHC)/Sb0_Curvature(2)*100;
+            disp(['Erreur max = ' num2str(erreurC) ' %'])
 
             disp('# Modèle Non Linéaire #')
             disp(['Sb0 = ' num2str(Sb0_NLineaire(2,2)) ' m/s'])
@@ -244,7 +244,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
                 % Nettoyage des valeurs stockant les résultats des modèles (pour éviter les résidus liés à la taile de la coupure)
                 close all
                 clear DiffRayonDiff_L VitesseDiff_L EtirementDiff_L 
-                clear DiffRayonCurv_L VitesseCurv_L EtirementCurv_L
+                clear DiffRayonCurv VitesseCurv EtirementCurv
                 clear rf_recalc t_recalc Vitesse_NL Etirement_NL 
             case 'Oui'
                 l = 1; % Calcul de l'erreur basse au prochain tour de boucle
@@ -256,11 +256,11 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
                 disp('### SAUVEGARDE DES RESULTATS ###')
                 file = [RepBase '\Out_Sb_calc.dat'];
                 fid = fopen(file,'w');
-                fprintf(fid,'Temps [s]\tRayon Brut [m]\tRayon Filt [m]\tdt [s]\tSb0 L [m/s]\tLb L [m]\t2LbL/Rmid\tSb0 CL [m/s]\tLb CL [m]\t2LbCL/Rmid\tSb0 NL 1 [m/s]\tLb NL 1 [m]\t2LbNL1/Rmid\tSb0 NL 2 [m/s]\tLb NL 2 [m]\t2LbNL2/Rmid\tCt NL 2');
+                fprintf(fid,'Temps [s]\tRayon Brut [m]\tRayon Filt [m]\tdt [s]\tSb0 L [m/s]\tLb L [m]\t2LbL/Rmid\tSb0 C [m/s]\tLb C [m]\t2LbC/Rmid\tSb0 NL 1 [m/s]\tLb NL 1 [m]\t2LbNL1/Rmid\tSb0 NL 2 [m/s]\tLb NL 2 [m]\t2LbNL2/Rmid\tCt NL 2');
                 fprintf(fid,'\n');
                 for j=1:length(Ra_calc)
                     if j==1
-                        fprintf(fid,'%9.5f\t%10.10f\t%10.10f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f',temps_calc(j),Ra_cut(j),Ra_calc(j),temps_origin(2)-temps_origin(1),Sb0_Lineaire(2),Lb_Lineaire(2),2*Lb_Lineaire(2)/rmid,Sb0_Curvature_L(2),Lb_Curvature_L(2),2*Lb_Curvature_L(2)/rmid,Sb0_NLineaire(1,2),Lb_NLineaire(1,2),2*Lb_NLineaire(1,2)/rmid,Sb0_NLineaire(2,2),Lb_NLineaire(2,2),2*Lb_NLineaire(2,2)/rmid,C);
+                        fprintf(fid,'%9.5f\t%10.10f\t%10.10f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f',temps_calc(j),Ra_cut(j),Ra_calc(j),temps_origin(2)-temps_origin(1),Sb0_Lineaire(2),Lb_Lineaire(2),2*Lb_Lineaire(2)/rmid,Sb0_Curvature(2),Lb_Curvature(2),2*Lb_Curvature(2)/rmid,Sb0_NLineaire(1,2),Lb_NLineaire(1,2),2*Lb_NLineaire(1,2)/rmid,Sb0_NLineaire(2,2),Lb_NLineaire(2,2),2*Lb_NLineaire(2,2)/rmid,C);
                         fprintf(fid,'\n');
                     else
                         fprintf(fid,'%9.5f\t%10.10f\t%10.10f',temps_calc(j),Ra_cut(j),Ra_calc(j));
@@ -294,10 +294,10 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
 
                 file = [RepBase '\Data_Curvature_calc.dat'];
                 fid = fopen(file, 'w');
-                fprintf(fid, 'Temps CL [s]\tRayon CL [m]\tVitesse CL [m/s]\tEtirement CL [1/s]');
+                fprintf(fid, 'Temps C [s]\tRayon C [m]\tVitesse C [m/s]\tEtirement C [1/s]');
                 fprintf(fid, '\n');
                 for j=1:length(temps_calc)
-                    fprintf(fid, '%9.5f\t%10.10f\t%10.10f\t%10.10f',temps_calc(j),SolutionCurv(j),VitesseCurv_L(j,2),EtirementCurv_L(j,2));
+                    fprintf(fid, '%9.5f\t%10.10f\t%10.10f\t%10.10f',temps_calc(j),SolutionCurv(j),VitesseCurv(j,2),EtirementCurv(j,2));
                     fprintf(fid, '\n');
                 end
                 fclose(fid);
@@ -326,13 +326,13 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     plot(Etirement_origin(:,2),Vt_origin(:,2),'g*--');
     plot(Etirement_NL(:,2), Vitesse_NL(:,2),'r*','MarkerSize',2)
     plot(EtirementDiff_L(:,2),VitesseDiff_L(:,2),'b','LineWidth',2)
-    plot(EtirementCurv_L(:,2), VitesseCurv_L(:,2),'m--','LineWidth',2)
+    plot(EtirementCurv(:,2), VitesseCurv(:,2),'m--','LineWidth',2)
     plot(Etirement_origin(CoupureBasse,2),Vt_origin(CoupureBasse,2),'gs','MarkerSize',10,'MarkerFaceColor','m') % 
     plot(Etirement_origin(end-nbCoupureHaute,2),Vt_origin(end-nbCoupureHaute,2),'gs','MarkerSize',10,'MarkerFaceColor','m')
     hold off
     xlabel('Etirement [1/s]')
     ylabel('Vitesse de propagation [m/s]')
-    legend('Data exp','Non Lineaire','Lineaire','Courbure Lineaire','Rmin','Rmax')
+    legend('Data exp','Non Lineaire','Lineaire','Courbure','Rmin','Rmax')
     text(Etirement_origin(end,2),Vt_origin(end,2)*1.05,['\fontname{times} S_b^0 = ' num2str(Sb0_NLineaire(2,2)) ' m/s'],'FontSize',14)
     axis([min(Etirement_origin(:,2))*0.9 max(Etirement_origin(:,2))*1.1 min(Vt_origin(:,2))*0.9 max(Vt_origin(:,2))*1.1])
     
