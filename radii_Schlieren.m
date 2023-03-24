@@ -93,6 +93,12 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     Vt(Posrayonmin:Posrayonmax) = Vt_temp;
     Vt_filt(Posrayonmin:Posrayonmax) = Vt_filt_temp;
     
+    %% CALCUL DES ERREURS RELATIVES
+
+    Erreur_Ra = abs(Ra_filt-Ra)./abs(Ra)*100; % Erreur relative de filtrage
+    Erreur_Rp = abs(Rp_filt-Rp)./abs(Ra)*100; % Erreur relative de filtrage
+    Erreur_Vt = abs(Vt_filt-Vt)./abs(Vt)*100; % Erreur relative de filtrage
+    Erreur_Rayons = abs(Ra_filt-Rp_filt); % Erreur absolue sur les rayons 
 
     %% PLOT DES RESULTATS
 
@@ -120,6 +126,38 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     ylabel('Vitesse de propagation [m/s]')
     legend('Vt', 'Vt_{filt}')
     saveas(gcf, [RepBase '\Evolution_Vt.fig']) % Sauvegarde de la figure
+
+    % Plot des erreurs
+    figure(100*LeftRight)
+
+    subplot(2,2,1)
+    plot(Ra_filt, Erreur_Rayons, 'r','LineWidth',2)
+    xlabel('Rayon [mm]')
+    ylabel('Erreur [mm]')
+    title('Erreur sur les rayons')
+    xlim([0 round(Ra_filt(end))+5])
+
+    subplot(2,2,2)
+    plot(Ra_filt,Erreur_Ra,'r','LineWidth',2)
+    xlabel('Rayon [mm]')
+    ylabel('Erreur [%]')
+    title('Erreur de filtrage Ra')
+    xlim([0 round(Ra_filt(end))+5])
+
+    subplot(2,2,3)
+    plot(Rp_filt,Erreur_Rp,'r','LineWidth',2)
+    xlabel('Rayon [mm]')
+    ylabel('Erreur [%]')
+    title('Erreur de filtrage Rp')
+    xlim([0 round(Rp_filt(end))+5])
+
+    subplot(2,2,4)
+    plot(Ra_filt,Erreur_Vt,'r','LineWidth',2)
+    xlabel('Rayon [mm]')
+    ylabel('Erreur [%]')
+    title('Erreur de filtrage Vt')
+    xlim([0 round(Ra_filt(end)+5)])
+   
 
     %% SAUVEGARDE DES RESULTATS
 
