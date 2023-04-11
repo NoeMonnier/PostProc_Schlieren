@@ -44,6 +44,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     xlabel('Etirement [1/s]')
     ylabel('Vitesse de propagation [m/s]')
     legend('Données exp')
+    box on;
 
     % Valeurs pour la première coupure
     prompt = {'Entrer la coupure basse (mm):',['Entrer la coupure haute (< ' num2str(Ra(end)) ' mm)'  ]};
@@ -96,17 +97,19 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
 
         %% CALCUL MODELE LINEAIRE ETIREMENT 
         % Modèle valable pour Lb > 0
-        param = [0.75 -0.001 0]; % Initialisation des paramètres (valeurs arbitraires)
+        param = [0.75 0.001 0]; % Initialisation des paramètres (valeurs arbitraires)
         [CP,~,~,~] = fminsearch(@fct_Lineaire,param,optimset('TolFun',1e-20,'MaxIter',10000,'MaxFunEvals',1e9),temps_calc,Ra_calc); % Optimisaltion des paramètres (Sb, Lb, Condition Initiale)
         Sb0 = CP(1); % Vitesse non étirée des gaz brulés
         Lb = CP(2); % Longueur de Markstein
-        [TempsDiff,SolutionDiff] = ode45(@(t,r) Sb0/(1+(2*Lb/r)), temps_calc, CP(3)); % Résolution du modèle linéraire à l'aide des paramètres optimisés 
+        C = CP(3); % Constante d'intégration
+        Z = exp((Sb0.*temps_calc+C)./(2*Lb))./(2.*Lb);
+        SolutionDiff = 2*Lb.*lambertw(Z); % Résolution du modèle linéraire à l'aide des paramètres optimisés 
         DiffRayonDiff_L(:,l) = abs(Ra_calc - SolutionDiff); % Erreur entre le modèle linéaire et les rayons exp
         VitesseDiff_L(:,l) = gradient(SolutionDiff, temps_calc); % Calcul de la vitesse à partir de la résolution du modèle linéaire
         EtirementDiff_L(:,l) = 2*VitesseDiff_L(:,l)./SolutionDiff; % Calcul de l'étirement à partir de la résolution du modèle linéaire
         Sb0_Lineaire(l) = Sb0; 
         Lb_Lineaire(l) = Lb; 
-        %% CALCUL MODELE LINEAIRE COURBURE
+        %% CALCUL MODELE COURBURE
         param = [0.75 -0.001 0]; % Initialisation des paramètres (valeurs arbitraires)
         [CP,~,~,~] = fminsearch(@fct_Curvature,param,optimset('TolFun',1e-20,'MaxIter',10000,'MaxFunEvals',1e9),temps_calc,Ra_calc); % Optimisaltion des paramètres (Sb, Lb, Condition Initiale)
         Sb0 = CP(1); 
@@ -119,7 +122,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
         Lb_Curvature(l) = Lb;
         %% CALCUL MODELE NON LINEAIRE ETIREMENT   
         % Modèle NL 
-        param = [Sb0 Lb]; % Initialisation des paramètres (valeurs du modèle Linéiare)
+        param = [Sb0_Lineaire(l) Lb_Lineaire(l)]; % Initialisation des paramètres (valeurs du modèle Linéiare)
         [CP,~,~,~] = fminsearch(@fct_nonlineaire,param,optimset('TolFun',1e-14,'MaxIter',10000,'MaxFunEvals',1e7),Ra_calc,Vt_calc); % Optimisation des paramètres (Sb, Lb)
         Sb0_1 = CP(1); % Vitesse non étirée des gaz brulés  
         Lb_1 = CP(2); % Longueur de Markstein
@@ -200,6 +203,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
             ylabel('Vitesse de propagation [m/s]');
             legend('Data Exp', 'Modèle NL');
             axis([Etirement_origin(end,2)*0.9 Etirement_origin(1,2)*1.1 min(Vt_origin(:,2))*0.9 max(Vt_origin(:,2))*1.1]);
+            box on;
 
             % Raffinement de la coupure 
             h1 = drawpoint(gca, 'Position', [Etirement_calc(1) Vt_calc(1)]);
@@ -256,11 +260,11 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
                 disp('### SAUVEGARDE DES RESULTATS ###')
                 file = [RepBase '\Out_Sb_calc.dat'];
                 fid = fopen(file,'w');
-                fprintf(fid,'Temps [s]\tRayon Brut [m]\tRayon Filt [m]\tdt [s]\tSb0 L [m/s]\tLb L [m]\t2LbL/Rmid\tSb0 C [m/s]\tLb C [m]\t2LbC/Rmid\tSb0 NL 1 [m/s]\tLb NL 1 [m]\t2LbNL1/Rmid\tSb0 NL 2 [m/s]\tLb NL 2 [m]\t2LbNL2/Rmid\tCt NL 2');
+                fprintf(fid,'Temps [s]\tRayon Brut [m]\tRayon Filt [m]\tdt [s]\tSb0 L [m/s]\tLb L [mm]\t2LbL/Rmid\tSb0 C [m/s]\tLb C [mm]\t2LbC/Rmid\tSb0 NL 1 [m/s]\tLb NL 1 [mm]\t2LbNL1/Rmid\tSb0 NL 2 [m/s]\tLb NL 2 [mm]\t2LbNL2/Rmid\tCt NL 2');
                 fprintf(fid,'\n');
                 for j=1:length(Ra_calc)
                     if j==1
-                        fprintf(fid,'%9.5f\t%10.10f\t%10.10f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f',temps_calc(j),Ra_cut(j),Ra_calc(j),temps_origin(2)-temps_origin(1),Sb0_Lineaire(2),Lb_Lineaire(2),2*Lb_Lineaire(2)/rmid,Sb0_Curvature(2),Lb_Curvature(2),2*Lb_Curvature(2)/rmid,Sb0_NLineaire(1,2),Lb_NLineaire(1,2),2*Lb_NLineaire(1,2)/rmid,Sb0_NLineaire(2,2),Lb_NLineaire(2,2),2*Lb_NLineaire(2,2)/rmid,C);
+                        fprintf(fid,'%9.5f\t%10.10f\t%10.10f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f\t%9.9f',temps_calc(j),Ra_cut(j),Ra_calc(j),temps_origin(2)-temps_origin(1),Sb0_Lineaire(2),Lb_Lineaire(2)*1000,2*Lb_Lineaire(2)/rmid,Sb0_Curvature(2),Lb_Curvature(2)*1000,2*Lb_Curvature(2)/rmid,Sb0_NLineaire(1,2),Lb_NLineaire(1,2)*1000,2*Lb_NLineaire(1,2)/rmid,Sb0_NLineaire(2,2),Lb_NLineaire(2,2)*1000,2*Lb_NLineaire(2,2)/rmid,C);
                         fprintf(fid,'\n');
                     else
                         fprintf(fid,'%9.5f\t%10.10f\t%10.10f',temps_calc(j),Ra_cut(j),Ra_calc(j));
@@ -335,6 +339,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     legend('Data exp','Non Lineaire','Lineaire','Courbure','Rmin','Rmax')
     text(Etirement_origin(end,2),Vt_origin(end,2)*1.05,['\fontname{times} S_b^0 = ' num2str(Sb0_NLineaire(2,2)) ' m/s'],'FontSize',14)
     axis([min(Etirement_origin(:,2))*0.9 max(Etirement_origin(:,2))*1.1 min(Vt_origin(:,2))*0.9 max(Vt_origin(:,2))*1.1])
+    box on;
     
 
     Im2 = figure(2);
@@ -355,6 +360,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     xlabel('Temps [s]');
     ylabel('Rayon [m]');
     legend('','Data exp','','','Modèle Non Linéaire','','Rmin','Rmax','Location','northwest')
+    box on;
 
     % Sauvegarde des graphs sous format image
     saveas(Im1,[RepBase '\Sb0_models.fig'])
