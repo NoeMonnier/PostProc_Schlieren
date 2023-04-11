@@ -82,5 +82,6 @@ Output :
 - `Data_Curvature_calc.dat` : text file containing the data for the curvature based model computation
 - `Data_NLineaire_calc.dat` : text file containing the data for the non linear model computation
 
+
 This final code computes the unstretched laminar flame speed with the resolution of different models. Once the inputs are correct run the code and select the correct folder containing the images from VideoProcess.m . On the first popup window select radii values for the first cut (6.5-25 by default), be careful to respect the limit for the upper cutting point. If the cut is good click “Oui”,
 otherwise click “Non” and move the dots on the popup window, double click on a dot to validate its position. The final results are displayed on screen and in the console.
