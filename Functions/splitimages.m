@@ -2,7 +2,7 @@
 % This code splits images along a vertical line
 %%
 
-disp('splitting images');
+disp('### Splitting images ###');
 Listrawimages = dir([RepBase '/*.tif']);    % Recherche des images dans le répertoire
 
 
@@ -11,17 +11,17 @@ SaveLeft = [RepBase '/0_Images_Left'];
 SaveRight = [RepBase '/0_Images_Right'];
 
 % Delete old versions
-OldLeft = exist([SaveLeft] , 'file') ;
+OldLeft = exist(SaveLeft , 'file') ;
     if OldLeft == 7
-        rmdir([SaveLeft],'s');
-        rmdir([SaveRight],'s');
+        rmdir(SaveLeft,'s');
+        rmdir(SaveRight,'s');
     end
 
 % Create empty directories
 % mkdir(SaveLeft);                           
 mkdir(SaveRight);                            
 
-parfor i=1:skip:length(Listrawimages)
+for i=1:length(Listrawimages)
     rawimage = im2double(imread([RepBase '/' Listrawimages(i,1).name])) ;   %Reading origninal image
     %Crop images
     leftimage=rawimage(:,1:splitx);                                        

@@ -10,18 +10,18 @@ warning off
 %% CHOIX DU REPERTOIRE/BASE DE TRAVAIL
 
 addpath('./Functions') % Répertoire où sont stockées les fonctions MATLAB
-RepBase = uigetdir('C:\Users\noe.monnier\Documents\Post_Proc'); % Répertoire où sont stockées les fichiers du tir
+RepBase = uigetdir('C:\Users\noe.monnier\Documents\Post_Proc\'); % Répertoire où sont stockées les fichiers du tir
 OriginalRepBase = RepBase; % Copie du chemin du répertoire de travail
 
 %% PARAMETRES
 
-Rayon_min_traite = 6.5; % Rayon minimum [mm] utilisé pour le calcul de vitesse
+Rayon_min_traite = 8; % Rayon minimum [mm] utilisé pour le calcul de vitesse
 Rayon_max_traite = 20; % Rayon maximum [mm] utilisé pour le calcul de vitesse
-F = 5000; % Fréquence d'aquisition de la caméra
-skip = 1; % Saut d'images effectué lors de la detection des contours
-largeur = 1; % Largeur du gradient utilisé pour calculé la vitesse (Défaut : 1)
+F = 7000; % Fréquence d'aquisition de la caméra
+skip = 2; % Saut d'images effectué lors de la detection des contours
+largeur = 5; % Largeur du gradient utilisé pour calculé la vitesse (Défaut : 1)
 
-imagesplit = false; % Si le Schlieren est splité : true 
+imagesplit = true; % Si le Schlieren est splité : true 
 
 %% TRAITEMENT DES CONTOURS
 
@@ -50,7 +50,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     NumContours = zeros(NbContours, 1); % Numéro des images correspondants aux contours
     centre_x = zeros(NbContours, 1); % Abscises des centres des contours
     centre_y = zeros(NbContours, 1); % Ordonnées des centres des contours
-
+    Shape_ratio = zeros(NbContours, 1); % Roundess des contours
     %% DETERMINATION DES RAYONS EQUIVALENTS
 
     for i = 1:NbContours
@@ -62,14 +62,15 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
         XContour = real(Contour_filt_int); % Abscises des point du contour
         YContour = abs(imag(Contour_filt_int)); % Ordonnées des points du contour
 
-        [geom, iner, cpmo] = polygeom(XContour, YContour); % Calcul les différentes propriétés du contour 
-        A(i) = geom(1)*(Grandissement^2); % Aire du contour en mm² 
-        P(i) = geom(4)*Grandissement; % Périmètre du contour en mm
+        [geom, ~, ~] = polygeom(XContour, YContour); % Calcul les différentes propriétés du contour 
+        A(i) = geom(1)*(Grandissement(LeftRight)^2); % Aire du contour en mm² 
+        P(i) = geom(4)*Grandissement(LeftRight); % Périmètre du contour en mm
         % geom(2) et geom(3) sont les positions x,y du centre de gravité du contour
-        centre_x(i) = geom(2)*Grandissement;
-        centre_y(i) = geom(2)*Grandissement;
+        centre_x(i) = geom(2)*Grandissement(LeftRight);
+        centre_y(i) = geom(3)*Grandissement(LeftRight);
         Ra(i) = sqrt(A(i)/pi()); % Rayon moyen basé sur l'aire du contour en mm
         Rp(i) = P(i)/(2*pi()); % Rayon moyen basé sur le perimètre du contour en mm
+        Shape_ratio(i) = (max(YContour)-min(YContour))/(max(XContour)-min(XContour)); % Rapport de forme du contour (1 = cercle parfait, diverge quand la forme se déforme trop)
 
         disp(['Contour n°' num2str(NumContours(i)) ' : Ra = ' num2str(Ra(i)) ' mm'])
 
@@ -114,6 +115,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     ylabel('Rayon équivalent [mm]')
     legend('Ra', 'Rp', 'Ra_{filt}', 'Rp_{filt}')
     axis([0 temps(end) 0 Ra(end)+5])
+    box on;
     saveas(gcf, [RepBase '\Evolution_rayons.fig']) % Sauvegarde de la figure
 
     % Plot des vitesses brutes et filtrées
@@ -125,6 +127,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     xlabel('Rayon Ra_{filt} [mm]')
     ylabel('Vitesse de propagation [m/s]')
     legend('Vt', 'Vt_{filt}')
+    box on;
     saveas(gcf, [RepBase '\Evolution_Vt.fig']) % Sauvegarde de la figure
 
     % Plot des erreurs
@@ -136,6 +139,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     ylabel('Erreur [mm]')
     title('Erreur sur les rayons')
     xlim([0 round(Ra_filt(end))+5])
+    box on;
 
     subplot(2,2,2)
     plot(Ra_filt,Erreur_Ra,'r','LineWidth',2)
@@ -143,6 +147,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     ylabel('Erreur [%]')
     title('Erreur de filtrage Ra')
     xlim([0 round(Ra_filt(end))+5])
+    box on;
 
     subplot(2,2,3)
     plot(Rp_filt,Erreur_Rp,'r','LineWidth',2)
@@ -150,6 +155,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     ylabel('Erreur [%]')
     title('Erreur de filtrage Rp')
     xlim([0 round(Rp_filt(end))+5])
+    box on;
 
     subplot(2,2,4)
     plot(Ra_filt,Erreur_Vt,'r','LineWidth',2)
@@ -157,6 +163,20 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     ylabel('Erreur [%]')
     title('Erreur de filtrage Vt')
     xlim([0 round(Ra_filt(end)+5)])
+    box on;
+
+    saveas(gcf, [RepBase '\Erreurs_Rayons.fig']) % Sauvegarde de la figure
+
+    % Plot du facteur de forme
+    figure(1000*LeftRight)
+    hold on
+    plot(Ra_filt, Shape_ratio, 'rx-')
+    hold off
+    xlabel('Rayon Ra_{filt} [mm]')
+    ylabel('Shape ratio [-]')
+    box on;
+    saveas(gcf, [RepBase '\Shape_ratio.fig']) % Sauvegarde de la figure
+
    
 
     %% SAUVEGARDE DES RESULTATS
