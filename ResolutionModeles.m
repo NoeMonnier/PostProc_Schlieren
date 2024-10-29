@@ -10,7 +10,7 @@ warning off
 %% CHOIX DU REPERTOIRE/BASE DE TRAVAIL ET CHARGEMENT DES DONNEES
 
 addpath('./Functions') % Répertoire où sont stockées les fonctions MATLAB
-RepBase = uigetdir('C:\Users\noe.monnier\Documents\Post_Proc'); % Répertoire où sont stockées les fichiers du tir
+RepBase = uigetdir('C:\Users\noe.monnier\Documents\NO\Experimental Database\'); % Répertoire où sont stockées les fichiers du tir
 OriginalRepBase = RepBase; % Copie du chemin du répertoire de travail
 
 imagesplit = false; % true si le Schlieren est split
@@ -54,7 +54,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     answer = inputdlg(prompt,dlg_title,num_lines,def);
     rbas = str2double(answer{1}); % Coupure basse
     rhaut = str2double(answer{2}); % Coupure haute
-    rmid = rhaut - rbas; % Rayon médian de coupure
+    rmid = (rhaut - rbas)/2 + rbas; % Rayon médian de coupure
 
     close all
     
@@ -137,7 +137,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
         if Lb_2>0
             x = 1/exp(1):0.0001:1;
         else
-            x = 1:0.0001:4;
+            x = 1:0.00005:10;
         end
         % Calcul des vecteurs temps et rayon à partir du modèle Non Linéaire et des paramètres optimisés
         rf_recalc(:,l) = -2*Lb_2./(x.*log(x));

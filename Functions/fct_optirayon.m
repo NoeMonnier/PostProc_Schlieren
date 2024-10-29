@@ -27,7 +27,7 @@ if CP2>0
     end
 
 else
-    x=1:0.0001:8;
+    x=1:0.00005:10;
     t=real(2*(CP2/CP1)*expint((log(x.^2)))-2*(CP2/CP1)*(1./(x.^2.*log(x)))+CP3);
     rf=-2*CP2./(x.*log(x));
     b=1;
