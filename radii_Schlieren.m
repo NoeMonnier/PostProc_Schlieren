@@ -10,18 +10,20 @@ warning off
 %% CHOIX DU REPERTOIRE/BASE DE TRAVAIL
 
 addpath('./Functions') % Répertoire où sont stockées les fonctions MATLAB
-RepBase = uigetdir('C:\Users\noe.monnier\Documents\Post_Proc\'); % Répertoire où sont stockées les fichiers du tir
+RepBase = uigetdir('C:\Users\noe.monnier\Documents\NO\'); % Répertoire où sont stockées les fichiers du tir
 OriginalRepBase = RepBase; % Copie du chemin du répertoire de travail
 
 %% PARAMETRES
 
-Rayon_min_traite = 8; % Rayon minimum [mm] utilisé pour le calcul de vitesse
-Rayon_max_traite = 20; % Rayon maximum [mm] utilisé pour le calcul de vitesse
+sizex = 1280; % Size of the picture [pxl]
+sizey = 800; 
+Rayon_min_traite = 6; % Rayon minimum [mm] utilisé pour le calcul de vitesse
+Rayon_max_traite = 25; % Rayon maximum [mm] utilisé pour le calcul de vitesse
 F = 7000; % Fréquence d'aquisition de la caméra
 skip = 2; % Saut d'images effectué lors de la detection des contours
 largeur = 5; % Largeur du gradient utilisé pour calculé la vitesse (Défaut : 1)
 
-imagesplit = true; % Si le Schlieren est splité : true 
+imagesplit = false; % Si le Schlieren est splité : true 
 
 %% TRAITEMENT DES CONTOURS
 
@@ -50,7 +52,9 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     NumContours = zeros(NbContours, 1); % Numéro des images correspondants aux contours
     centre_x = zeros(NbContours, 1); % Abscises des centres des contours
     centre_y = zeros(NbContours, 1); % Ordonnées des centres des contours
-    Shape_ratio = zeros(NbContours, 1); % Roundess des contours
+    Shape_ratio = zeros(NbContours, 1); % Ratio d'aspect des contours
+    Roundness = zeros(NbContours, 1); % Roundness des contours
+
     %% DETERMINATION DES RAYONS EQUIVALENTS
 
     for i = 1:NbContours
@@ -66,11 +70,12 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
         A(i) = geom(1)*(Grandissement(LeftRight)^2); % Aire du contour en mm² 
         P(i) = geom(4)*Grandissement(LeftRight); % Périmètre du contour en mm
         % geom(2) et geom(3) sont les positions x,y du centre de gravité du contour
-        centre_x(i) = geom(2)*Grandissement(LeftRight);
-        centre_y(i) = geom(3)*Grandissement(LeftRight);
+        centre_x(i) = geom(2);%*Grandissement(LeftRight);
+        centre_y(i) = geom(3);%*Grandissement(LeftRight);
         Ra(i) = sqrt(A(i)/pi()); % Rayon moyen basé sur l'aire du contour en mm
         Rp(i) = P(i)/(2*pi()); % Rayon moyen basé sur le perimètre du contour en mm
-        Shape_ratio(i) = (max(YContour)-min(YContour))/(max(XContour)-min(XContour)); % Rapport de forme du contour (1 = cercle parfait, diverge quand la forme se déforme trop)
+        Shape_ratio(i) = (max(YContour)-min(YContour))/(max(XContour)-min(XContour)); % Ratio d'aspect du contour 
+        Roundness(i) = (4*pi()*A(i))/(P(i)^2); % Roundness du contour
 
         disp(['Contour n°' num2str(NumContours(i)) ' : Ra = ' num2str(Ra(i)) ' mm'])
 
@@ -93,6 +98,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     Vt_filt_temp = filtfilt(d1, Vt_temp); % Filtrage de la vitesse
     Vt(Posrayonmin:Posrayonmax) = Vt_temp;
     Vt_filt(Posrayonmin:Posrayonmax) = Vt_filt_temp;
+    Froude = Vt_filt(Posrayonmin:Posrayonmax)./sqrt(9.81.*(Ra_filt(Posrayonmin:Posrayonmax)./1000)); % Froude number : buoyancy effect
     
     %% CALCUL DES ERREURS RELATIVES
 
@@ -111,9 +117,9 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     plot(temps, Ra_filt, 'r-')
     plot(temps, Rp_filt, 'k-')
     hold off
-    xlabel('Temps [ms]')
-    ylabel('Rayon équivalent [mm]')
-    legend('Ra', 'Rp', 'Ra_{filt}', 'Rp_{filt}')
+    xlabel('Temps [ms]','Interpreter','latex')
+    ylabel('Rayon equivalent [mm]','Interpreter','latex')
+    legend('Ra', 'Rp', 'Ra$_{filt}$', 'Rp$_{filt}$','Interpreter','latex')
     axis([0 temps(end) 0 Ra(end)+5])
     box on;
     saveas(gcf, [RepBase '\Evolution_rayons.fig']) % Sauvegarde de la figure
@@ -124,9 +130,9 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
     plot(Ra_filt, Vt, 'r+')
     plot(Ra_filt, Vt_filt, 'bo')
     hold off
-    xlabel('Rayon Ra_{filt} [mm]')
-    ylabel('Vitesse de propagation [m/s]')
-    legend('Vt', 'Vt_{filt}')
+    xlabel('Rayon Ra$_{filt}$ [mm]','Interpreter','latex')
+    ylabel('Vitesse de propagation [m/s]','Interpreter','latex')
+    legend('Vt', 'Vt$_{filt}$','Interpreter','latex')
     box on;
     saveas(gcf, [RepBase '\Evolution_Vt.fig']) % Sauvegarde de la figure
 
@@ -135,33 +141,33 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
 
     subplot(2,2,1)
     plot(Ra_filt, Erreur_Rayons, 'r','LineWidth',2)
-    xlabel('Rayon [mm]')
-    ylabel('Erreur [mm]')
-    title('Erreur sur les rayons')
+    xlabel('Rayon [mm]','Interpreter','latex')
+    ylabel('Erreur [mm]','Interpreter','latex')
+    title('Erreur sur les rayons','Interpreter','latex')
     xlim([0 round(Ra_filt(end))+5])
     box on;
 
     subplot(2,2,2)
     plot(Ra_filt,Erreur_Ra,'r','LineWidth',2)
-    xlabel('Rayon [mm]')
-    ylabel('Erreur [%]')
-    title('Erreur de filtrage Ra')
+    xlabel('Rayon [mm]','Interpreter','latex')
+    ylabel('Erreur [%]','Interpreter','latex')
+    title('Erreur de filtrage Ra','Interpreter','latex')
     xlim([0 round(Ra_filt(end))+5])
     box on;
 
     subplot(2,2,3)
     plot(Rp_filt,Erreur_Rp,'r','LineWidth',2)
-    xlabel('Rayon [mm]')
-    ylabel('Erreur [%]')
-    title('Erreur de filtrage Rp')
+    xlabel('Rayon [mm]','Interpreter','latex')
+    ylabel('Erreur [%]','Interpreter','latex')
+    title('Erreur de filtrage Rp','Interpreter','latex')
     xlim([0 round(Rp_filt(end))+5])
     box on;
 
     subplot(2,2,4)
     plot(Ra_filt,Erreur_Vt,'r','LineWidth',2)
-    xlabel('Rayon [mm]')
-    ylabel('Erreur [%]')
-    title('Erreur de filtrage Vt')
+    xlabel('Rayon [mm]','Interpreter','latex')
+    ylabel('Erreur [%]','Interpreter','latex')
+    title('Erreur de filtrage Vt','Interpreter','latex')
     xlim([0 round(Ra_filt(end)+5)])
     box on;
 
@@ -169,13 +175,48 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
 
     % Plot du facteur de forme
     figure(1000*LeftRight)
-    hold on
-    plot(Ra_filt, Shape_ratio, 'rx-')
-    hold off
-    xlabel('Rayon Ra_{filt} [mm]')
-    ylabel('Shape ratio [-]')
+    subplot(1,2,1)
+    plot(Ra_filt, Shape_ratio, 'r','LineWidth',2) 
+    xlabel('Rayon Ra$_{filt}$ [mm]','Interpreter','latex')
+    ylabel('Shape ratio [-]','Interpreter','latex')
+    xlim([0 round(Ra_filt(end)+5)])
     box on;
+
+    subplot(1,2,2)
+    hold on
+    plot(Ra_filt, Roundness,'r','LineWidth',2)
+    plot([0 40], [0.99 0.99], 'k--','LineWidth',2)
+    hold off
+    xlabel('Rayon Ra$_{filt}$ [mm]','Interpreter','latex')
+    ylabel('Roundness [-]','Interpreter','latex')
+    xlim([0 round(Ra_filt(end)+5)])
+    box on;
+
     saveas(gcf, [RepBase '\Shape_ratio.fig']) % Sauvegarde de la figure
+
+    %Plot du déplacement du centroïd
+    figure(10000*LeftRight)
+    imagesc(imread([RepBase '\fond.tif']))
+    colormap gray
+    hold on
+    plot(centre_x,centre_y,'r','LineWidth',2)
+    plot(centre_x(1),centre_y(1),'gs','MarkerSize',10,'MarkerFaceColor','m')
+    text(centre_x(1)*1.02,centre_y(1),'Start','FontSize',10,'Color','r')
+    plot(centre_x(end),centre_y(end),'gs','MarkerSize',10,'MarkerFaceColor','m')
+    text(centre_x(end)*1.02,centre_y(end),['Stop ' num2str((centre_x(end)-centre_x(1))*Grandissement(LeftRight),'%2.2f') ' mm ' num2str((centre_y(end)-centre_y(1))*Grandissement(LeftRight),'%2.2f') ' mm'],'FontSize',10,'Color','r')
+    hold off
+    title('Centroïd displacement','Interpreter','latex')
+    axis([0 sizex 0 sizey])
+    box on;
+    saveas(gcf, [RepBase '\Centroid_displacement.fig'])
+
+    % Plot du Froude
+    figure(100000*LeftRight)
+    plot(Ra_filt(Posrayonmin:Posrayonmax),Froude,'b',LineWidth=2)
+    xlabel('Ra [mm]','Interpreter','latex')
+    ylabel('Froude Number [-]','Interpreter','latex')
+    box on;
+    saveas(gcf,[RepBase '\Froude.fig'])
 
    
 

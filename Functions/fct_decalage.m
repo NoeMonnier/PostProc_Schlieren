@@ -26,7 +26,7 @@ if Lb>0
     end
 
 else
-    x=1:0.00005:6;
+    x=1:0.00005:10;
     t=real(2*(Lb/Vs)*expint((log(x.^2)))-2*(Lb/Vs)*(1./(x.^2.*log(x)))+decal);
     rf=-2*Lb./(x.*log(x));
     b=1;
