@@ -239,7 +239,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
                 supxhaut = find(Etirement_origin(:,2) > xhaut(1),1,'last'); % Point le plus proche ayant un étirement supérieur à xhaut
                 rbas = Ra_origin(supxbas,2); % Correspondance Rayon/Etirement 
                 rhaut = Ra_origin(supxhaut,2);
-                rmid = rhaut - rbas; % Rayon médian de coupure
+                rmid = (rhaut - rbas)/2 + rbas; % Rayon médian de coupure
                 CoupureBasse = find(Ra_origin(:,2) > rbas,1); % Nouvelle coupure basse
                 nbCoupureHaute = length(Ra_origin(:,2))-find(Ra_origin(:,2) > rhaut,1); % Nouvelle coupure haute
                 rbas = rbas*1e3; % Convertion m/mm pour l'affichage
@@ -312,7 +312,7 @@ for LeftRight=2:2 % Images à traiter : 1:1 (gauche) OU 1:2 (gauche et droite) O
                 fprintf(fid, 'Temps NL [s]\tRayon NL [m]\tVitesse NL [m/s]\tEtirement NL [1/s]');
                 fprintf(fid, '\n');
                 for j=1:length(t_recalc)
-                    fprintf(fid, '%9.5f\t%10.10f\t%10.10f\t%10.10f',t_recalc(j),rf_recalc(j),Vitesse_NL(j,2),Etirement_NL(j,2));
+                    fprintf(fid, '%9.5f\t%10.10f\t%10.10f\t%10.10f',t_recalc(j,2),rf_recalc(j,2),Vitesse_NL(j,2),Etirement_NL(j,2));
                     fprintf(fid, '\n');
                 end
                 fclose(fid);
